@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from . import schema, enum
 
-async def get_events(
+async def fetch_events(
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
     countries: List[enum.Country] = []

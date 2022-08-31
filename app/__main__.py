@@ -2,7 +2,7 @@ import asyncio
 from . import api, enum
 
 async def main():
-    data = await api.get_events()
+    data = await api.fetch_events()
     print(data)
 
 loop = asyncio.get_event_loop()
