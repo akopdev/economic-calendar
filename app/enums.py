@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class Country(str, Enum):
     MX = "MX"
     DE = "DE"
@@ -16,6 +17,7 @@ class Country(str, Enum):
     TR = "TR"
     ES = "ES"
     IT = "IT"
+
 
 class Currency(str, Enum):
     CAD = "CAD"

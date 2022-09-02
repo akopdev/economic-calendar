@@ -64,7 +64,7 @@ lint: lint.flake8 lint.safety lint.docs
 # flake8 
 # -------------------------------------------------------------------------------------------------
 lint.flake8: 
-	$(PYTHON) flake8 --exclude=venv,.eggs,*.egg,.git,migrations \
+	$(PYTHON) flake8 --exclude=.venv,.eggs,*.egg,.git,migrations \
 									 --filename=*.py,*.pyx \
 									 --max-line-length=100 .
 

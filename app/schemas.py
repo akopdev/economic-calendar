@@ -2,7 +2,7 @@ from dataclasses import dataclass, asdict
 from typing import Optional
 from datetime import datetime
 
-from .enum import Country, Currency
+from .enums import Country, Currency
 
 
 class BaseSchema():
