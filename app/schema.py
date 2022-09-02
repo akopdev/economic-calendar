@@ -1,11 +1,17 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Optional
 from datetime import datetime
 
 from .enum import Country, Currency
 
+
+class BaseSchema():
+    def dict(self):
+        return asdict(self)
+
+
 @dataclass
-class Event:
+class Event(BaseSchema):
     id: int
     title: str
     country: Country
