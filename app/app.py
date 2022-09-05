@@ -41,15 +41,13 @@ class BackgroundTasks:
             app[task[0]] = asyncio.create_task(task[1](app))
 
 
-class Application:
-    def __init__(self):
-        self.app = web.Application()
+class Application(web.Application):
 
     def include_router(self, router: APIRouter):
-        self.app.add_routes(router.routers)
+        self.add_routes(router.routers)
 
     def include_task(self, tasks: BackgroundTasks):
-        self.app.on_startup.append(tasks)
+        self.on_startup.append(tasks)
 
     def run(self):
-        web.run_app(self.app)
+        web.run_app(self)
