@@ -6,21 +6,29 @@ import asyncio
 
 class APIRouter:
     def __init__(self) -> None:
-        self.routers = []
+        self.routers = [
+            web.get("/health", self._health)
+        ]
 
     def get(self, _func=None, *, url: str) -> Callable:
         def decorator(func) -> None:
-            async def custom_func(*args, **kwargs) -> Any:
+            async def custom_func(*args, **kwargs) -> web.Response:
                 if func.__code__.co_argcount:
                     data = await func(*args, **kwargs)
                 else:
                     data = await func()
-                return web.Response(
-                    content_type="application/json",
-                    text=json.dumps(data, default=lambda o: o.dict())
-                )
+                return self._response(data)
             self.routers.append(web.get(url, custom_func))
         return decorator
+
+    def _response(self, data: Any) -> web.Response:
+        return web.Response(
+            content_type="application/json",
+            text=json.dumps(data, default=lambda o: o.dict())
+        )
+
+    async def _health(self, *args) -> web.Response:
+        return self._response("OK")
 
 
 class BackgroundTasks:
@@ -42,7 +50,6 @@ class BackgroundTasks:
 
 
 class Application(web.Application):
-
     def include_router(self, router: APIRouter):
         self.add_routes(router.routers)
 
