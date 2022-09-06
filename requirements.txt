@@ -22,10 +22,14 @@ gunicorn==20.1.0
     # via -r requirements.in
 idna==3.3
     # via yarl
+motor==3.0.0
+    # via -r requirements.in
 multidict==6.0.2
     # via
     #   aiohttp
     #   yarl
+pymongo==4.2.0
+    # via motor
 yarl==1.8.1
     # via aiohttp
 

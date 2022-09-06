@@ -1,21 +1,21 @@
 import aiohttp
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from datetime import datetime, timedelta
 
 from . import schemas, enums
 
 
-class Event:
-    def __init__(self) -> None:
-        pass
+class Indicator:
+    def __init__(self, db) -> None:
+        self.db = db.indicators
 
     async def fetch(
         self,
         start: Optional[datetime] = None,
         end: Optional[datetime] = None,
         countries: List[enums.Country] = []
-    ) -> List[schemas.Event]:
-        events = []
+    ) -> List[schemas.Indicator]:
+        indicators = []
         if not start:
             start = datetime.utcnow() - timedelta(days=1)
         if not end:
@@ -31,5 +31,63 @@ class Event:
             ) as resp:
                 res = await resp.json()
                 if res["status"] == "ok" and res["result"]:
-                    events = [schemas.Event(**e) for e in res["result"]]
-        return events
+                    for result in res["result"]:
+                        indicator = await self.add(schemas.Event(**result))
+                        if indicator:
+                            indicators.append(indicator)
+        return indicators
+
+    async def add(self, event: schemas.Event) -> Optional[schemas.Indicator]:
+        res = await self.db.update_one(
+                {
+                    "title": event.title,
+                    "indicator": event.indicator,
+                    "country": event.country
+                },
+                {
+                    "$set": {
+                        "currency": event.currency,
+                        "source": event.source,
+                        "importance": event.importance,
+                        "unit": event.unit,
+                        "scale": event.scale,
+                        "ticker": event.ticker,
+                    },
+                    "$addToSet": {
+                        "data": {
+                            "period": event.period,
+                            "date": event.date,
+                            "actual": event.actual,
+                            "forecast": event.forecast,
+                        }
+                    },
+                },
+            upsert=True
+        )
+        if not res.modified_count:
+            return None
+
+        indicator = await self.db.find_one(
+            {
+                "title": event.title,
+                "indicator": event.indicator,
+                "country": event.country
+            }
+        )
+        if indicator:
+            return schemas.Indicator(**indicator)
+
+
+    async def find(self,
+                   filters: Optional[Dict[str, Any]] = {},
+                   sort:   Optional[str] = '-updated_at',
+                   skip:   Optional[int] = 0,
+                   limit:  Optional[int] = 1000,
+                   ) -> List[schemas.Indicator]:
+        order = 1
+        if sort and sort[0] == "-":
+            order = -1
+            sort = sort[1:]
+
+        indicators = self.db.find(filters).sort(sort, order).skip(skip).limit(limit)
+        return [schemas.Indicator(**i) for i in await indicators.to_list(length=None)]

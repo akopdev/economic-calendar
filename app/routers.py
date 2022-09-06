@@ -1,12 +1,12 @@
 from .app import APIRouter
-from .api import Event
+from .api import Indicator
 
 
 router = APIRouter()
 
 
-@router.get(url="/events")
-async def events():
-    event = Event()
-    data = await event.fetch()
-    return data
+@router.get(url="/history")
+async def history(request):
+    indicator = Indicator(request.app['db'])
+    return await indicator.find()
+

@@ -1,7 +1,9 @@
+from dataclasses import dataclass, asdict
 from typing import Any, Callable, List, Tuple
 from aiohttp import web
 import json
 import asyncio
+import os
 
 
 class APIRouter:
@@ -21,8 +23,9 @@ class APIRouter:
             self.routers.append(web.get(url, custom_func))
         return decorator
 
-    def _response(self, data: Any) -> web.Response:
+    def _response(self, data: Any, status: int = 200) -> web.Response:
         return web.Response(
+            status=status,
             content_type="application/json",
             text=json.dumps(data, default=lambda o: o.dict())
         )
@@ -58,3 +61,21 @@ class Application(web.Application):
 
     def run(self):
         web.run_app(self)
+
+
+@dataclass
+class BaseSettings:
+    def __getattribute__(self, name: str) -> Any:
+        try:
+            value = os.getenv(name, None)
+            if value is None:
+                value = object.__getattribute__(self, name)
+        except AttributeError:
+            value = None
+        return value
+
+
+@dataclass
+class BaseSchema():
+    def dict(self):
+        return asdict(self)

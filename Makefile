@@ -44,17 +44,34 @@ install:
 	$(PYTHON) piptools sync requirements.txt requirements-dev.txt
 
 # -------------------------------------------------------------------------------------------------
-# run: @ Build and launch application
+# run: @ Build and launch application in development mode
 # -------------------------------------------------------------------------------------------------
 run:
 	$(PYTHON) app.main
 
 # -------------------------------------------------------------------------------------------------
-# serve: @ Run application with web server
+# serve: @ Run application with production web server
 # -------------------------------------------------------------------------------------------------
 serve:
 	$(PYTHON) gunicorn app.main:app --worker-class aiohttp.GunicornWebWorker
 
+# -------------------------------------------------------------------------------------------------
+# up: @ Deploy test infrastructure
+# -------------------------------------------------------------------------------------------------
+up:
+	@docker run -d \
+	--name database \
+	-e MONGO_INITDB_ROOT_USERNAME=demo \
+	-e MONGO_INITDB_ROOT_PASSWORD=demo \
+	-p 27017:27017 \
+	mongo:latest
+	
+# -------------------------------------------------------------------------------------------------
+# down: @ Destroy test infrastructure
+# -------------------------------------------------------------------------------------------------
+down:
+	@docker stop database
+	@docker rm database
 
 # -------------------------------------------------------------------------------------------------
 # test: @ Run tests using pytest
