@@ -1,4 +1,5 @@
 from dataclasses import dataclass, asdict
+from datetime import datetime
 from typing import Any, Callable, List, Tuple
 from aiohttp import web
 import json
@@ -27,7 +28,7 @@ class APIRouter:
         return web.Response(
             status=status,
             content_type="application/json",
-            text=json.dumps(data, default=lambda o: o.dict())
+            text=json.dumps(data, default=lambda o: o.isoformat() if isinstance(o, datetime) else o.dict())
         )
 
     async def _health(self, *args) -> web.Response:

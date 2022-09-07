@@ -39,8 +39,10 @@ class Indicator(BaseSchema):
     indicator: str
     source: str
     importance: int
+    updated_at: datetime
     id: str = ""
     _id: InitVar[ObjectId] = None
+    next_update_at: Optional[datetime] = None
     ticker: Optional[str] = None
     comment: Optional[str] = None
     previous: Optional[float] = None

@@ -32,36 +32,45 @@ class Indicator:
                 res = await resp.json()
                 if res["status"] == "ok" and res["result"]:
                     for result in res["result"]:
+                        if result["date"]:
+                            result["date"] = datetime.fromisoformat(result["date"].replace("Z", "+00:00"))
                         indicator = await self.add(schemas.Event(**result))
                         if indicator:
                             indicators.append(indicator)
         return indicators
 
     async def add(self, event: schemas.Event) -> Optional[schemas.Indicator]:
+        payload = {
+            "$set": {
+                "currency": event.currency,
+                "source": event.source,
+                "importance": event.importance,
+                "unit": event.unit,
+                "scale": event.scale,
+                "ticker": event.ticker,
+                "updated_at": datetime.now()
+            },
+            "$addToSet": {
+                "data": {
+                    "period": event.period,
+                    "date": event.date,
+                    "actual": event.actual,
+                    "forecast": event.forecast,
+                }
+            },
+        }
+        # If we don't have an actual data then just update schedule info
+        if not event.actual:
+            del payload["$addToSet"]
+            payload["$set"]["next_update_at"] = event.date
+
         res = await self.db.update_one(
                 {
                     "title": event.title,
                     "indicator": event.indicator,
                     "country": event.country
                 },
-                {
-                    "$set": {
-                        "currency": event.currency,
-                        "source": event.source,
-                        "importance": event.importance,
-                        "unit": event.unit,
-                        "scale": event.scale,
-                        "ticker": event.ticker,
-                    },
-                    "$addToSet": {
-                        "data": {
-                            "period": event.period,
-                            "date": event.date,
-                            "actual": event.actual,
-                            "forecast": event.forecast,
-                        }
-                    },
-                },
+            payload,
             upsert=True
         )
         if not res.modified_count:
