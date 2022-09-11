@@ -1,8 +1,5 @@
-from dataclasses import dataclass
 from typing import Any, Callable, List, Tuple
-from aiohttp import web
 import asyncio
-import os
 
 
 class BackgroundTasks:
@@ -23,14 +20,4 @@ class BackgroundTasks:
             app[task[0]] = asyncio.create_task(task[1](app))
 
 
-@dataclass
-class BaseSettings:
-    def __getattribute__(self, name: str) -> Any:
-        try:
-            value = os.getenv(name, None)
-            if value is None:
-                value = object.__getattribute__(self, name)
-        except AttributeError:
-            value = None
-        return value
 
