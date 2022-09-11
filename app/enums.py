@@ -31,3 +31,9 @@ class Currency(str, Enum):
     AUD = "AUD"
     USD = "USD"
     JPY = "JPY"
+
+
+class Importance(int, Enum):
+    LOW = -1
+    MEDIUM = 0
+    HIGH = 1

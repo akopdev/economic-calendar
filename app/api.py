@@ -52,8 +52,8 @@ class Indicator:
             },
             "$addToSet": {
                 "data": {
-                    "period": event.period,
                     "date": event.date,
+                    "period": event.period,
                     "actual": event.actual,
                     "forecast": event.forecast,
                 }
@@ -62,7 +62,12 @@ class Indicator:
         # If we don't have an actual data then just update schedule info
         if not event.actual:
             del payload["$addToSet"]
-            payload["$set"]["next_update_at"] = event.date
+            payload["$set"]["next"] = {
+                "date": event.date,
+                "period": event.period,
+                "forecast": event.forecast,
+            }
+
 
         res = await self.db.update_one(
                 {
@@ -85,18 +90,3 @@ class Indicator:
         )
         if indicator:
             return schemas.Indicator(**indicator)
-
-
-    async def find(self,
-                   filters: Optional[Dict[str, Any]] = {},
-                   sort:   Optional[str] = '-updated_at',
-                   skip:   Optional[int] = 0,
-                   limit:  Optional[int] = 1000,
-                   ) -> List[schemas.Indicator]:
-        order = 1
-        if sort and sort[0] == "-":
-            order = -1
-            sort = sort[1:]
-
-        indicators = self.db.find(filters).sort(sort, order).skip(skip).limit(limit)
-        return [schemas.Indicator(**i) for i in await indicators.to_list(length=None)]
