@@ -1,5 +1,12 @@
-from aiohttp.web import RouteTableDef, HTTPBadRequest, HTTPNotFound, json_response
+from aiohttp.web import (
+    RouteTableDef,
+    HTTPBadRequest,
+    HTTPNotFound,
+    HTTPInternalServerError,
+    json_response
+)
 from datetime import datetime, timedelta
+
 from bson import ObjectId
 
 
@@ -7,13 +14,18 @@ router = RouteTableDef()
 
 @router.get("/health")
 async def health(request):
-    return json_response("OK")
+    db = request.app["client"]
+    try:
+        if db.address:
+            return json_response("OK")
+    except Exception:
+        raise HTTPInternalServerError(text="Connection refused. Database not available")
 
 
-@router.get("/events/upcoming")
+@router.get("/upcoming")
 async def get_upcoming_events(request):
     """
-    Provide list of upcoming events
+    Provide a list of upcoming events
     """
     try:
         days = int(request.rel_url.query.get("days", 7))
@@ -43,7 +55,7 @@ async def get_upcoming_events(request):
     return json_response(events)
 
 
-@router.get("/indicator/{id}")
+@router.get("/{id}/history")
 async def get_indicators(request):
     """
     Get historical data for single event

@@ -1,7 +1,9 @@
 from aiohttp import web
+
+from .database import client
+from .settings import settings
 from .routers import router
 from .tasks import task
-from .database import db
 
 @web.middleware
 async def error_middleware(request, handler):
@@ -20,7 +22,9 @@ async def error_middleware(request, handler):
 app = web.Application(middlewares=[error_middleware])
 app.router.add_routes(router)
 app.on_startup.append(task)
-app["db"] = db
+
+app["client"] = client
+app["db"] = client[settings.DATABASE_NAME]
 
 if __name__ == "__main__":
     web.run_app(app)

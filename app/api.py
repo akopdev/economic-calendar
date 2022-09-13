@@ -14,7 +14,7 @@ class Indicator:
         start: Optional[datetime] = None,
         end: Optional[datetime] = None,
         countries: List[enums.Country] = []
-    ) -> List[schemas.Indicator]:
+    ) -> List[Dict[str, Any]]:
         indicators = []
         if not start:
             start = datetime.utcnow() - timedelta(days=1)
@@ -39,7 +39,7 @@ class Indicator:
                             indicators.append(indicator)
         return indicators
 
-    async def add(self, event: schemas.Event) -> Optional[schemas.Indicator]:
+    async def add(self, event: schemas.Event) -> Optional[Dict[str, Any]]:
         payload = {
             "$set": {
                 "currency": event.currency,
@@ -81,12 +81,10 @@ class Indicator:
         if not res.modified_count:
             return None
 
-        indicator = await self.db.find_one(
+        return await self.db.find_one(
             {
                 "title": event.title,
                 "indicator": event.indicator,
                 "country": event.country
             }
         )
-        if indicator:
-            return schemas.Indicator(**indicator)
