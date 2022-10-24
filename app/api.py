@@ -40,20 +40,26 @@ class Indicator:
         return indicators
 
     async def add(self, event: schemas.Event) -> Optional[Dict[str, Any]]:
+        # skip certain events as they won't ever have valuable metrics
+        if event.indicator in ["Calendar", "Holidays"] or "Meeting" in event.title or "Speech" in event.title:
+            return None
+
+        # prepare database record
         payload = {
             "$set": {
+                "title": event.title,
+                "indicator": event.indicator,
+                "country": event.country,
                 "currency": event.currency,
                 "source": event.source,
                 "importance": event.importance,
                 "unit": event.unit,
                 "scale": event.scale,
-                "ticker": event.ticker,
                 "updated_at": datetime.now()
             },
             "$addToSet": {
                 "data": {
                     "date": event.date,
-                    "period": event.period,
                     "actual": event.actual,
                     "forecast": event.forecast,
                 }
@@ -68,23 +74,15 @@ class Indicator:
                 "forecast": event.forecast,
             }
 
+        code = self.get_code(event)
 
-        res = await self.db.update_one(
-                {
-                    "title": event.title,
-                    "indicator": event.indicator,
-                    "country": event.country
-                },
-            payload,
-            upsert=True
-        )
+        res = await self.db.update_one({ "code": code }, payload, upsert=True)
+
         if not res.modified_count:
             return None
 
-        return await self.db.find_one(
-            {
-                "title": event.title,
-                "indicator": event.indicator,
-                "country": event.country
-            }
-        )
+        return await self.db.find_one({"code": code})
+
+    def get_code(self, event: schemas.Event) -> str:
+        code = "_".join([event.country, " ".join(event.title.split())])
+        return code.replace(" ", "_").replace("-", "_").upper()

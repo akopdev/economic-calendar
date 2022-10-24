@@ -60,18 +60,26 @@ serve:
 # -------------------------------------------------------------------------------------------------
 up:
 	@docker run -d \
-	--name database \
-	-e MONGO_INITDB_ROOT_USERNAME=demo \
-	-e MONGO_INITDB_ROOT_PASSWORD=demo \
-	-p 27017:27017 \
-	mongo:latest
+		--name database \
+		-e MONGO_INITDB_ROOT_USERNAME=demo \
+		-e MONGO_INITDB_ROOT_PASSWORD=demo \
+		-p 27017:27017 \
+		mongo:latest
+	@docker run -d \
+		--name=grafana \
+		--network host \
+		-p 3000:3000 \
+		-e GF_INSTALL_PLUGINS=simpod-json-datasource \
+		grafana/grafana-oss
 	
 # -------------------------------------------------------------------------------------------------
 # down: @ Destroy test infrastructure
 # -------------------------------------------------------------------------------------------------
 down:
 	@docker stop database
+	@docker stop grafana
 	@docker rm database
+	@docker rm grafana
 
 # -------------------------------------------------------------------------------------------------
 # test: @ Run tests using pytest

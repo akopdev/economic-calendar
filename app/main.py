@@ -1,30 +1,86 @@
-from aiohttp import web
+import asyncio
+from datetime import datetime, timedelta
 
-from .database import client
+from aiohttp.web import (
+    HTTPNotFound
+)
+from bson import ObjectId
+from motor.motor_asyncio import AsyncIOMotorClient
+
+from .api import Indicator
+from .gds.gds import GrafanaDatasource
 from .settings import settings
-from .routers import router
-from .tasks import task
+from .settings import settings
 
-@web.middleware
-async def error_middleware(request, handler):
-    try:
-        response = await handler(request)
-        if response.status != 404:
-            return response
-        message = response.message
-    except web.HTTPException as ex:
-        if ex.status != 404:
-            raise
-        message = ex.reason
-    return web.json_response({'error': message})
+client = AsyncIOMotorClient(settings.DATABASE_DSL)
+
+app = GrafanaDatasource(client=client, db=client[settings.DATABASE_NAME])
 
 
-app = web.Application(middlewares=[error_middleware])
-app.router.add_routes(router)
-app.on_startup.append(task)
+@app.metric()
+async def upcoming_events(db: AsyncIOMotorClient, start: datetime, end: datetime):
+    """
+    Provide a list of upcoming events
+    """
+    indicators = db.indicators.find({
+        "next.date": {
+            "$gt": start,
+            "$lt": end
+        }
+    }).sort("next.date", 1)
+    events = []
+    for i in await indicators.to_list(length=None):
+        events.append({
+           "code": i["code"],
+           "title": i["title"],
+           "country": i["country"],
+           "currency": i["currency"],
+           "indicator": i["indicator"],
+           "date": i["next"]["date"].isoformat(),
+           "forecast": i["next"]["forecast"],
+        })
+    return events
 
-app["client"] = client
-app["db"] = client[settings.DATABASE_NAME]
+
+@app.metric()
+async def actual(db: AsyncIOMotorClient, code: str):
+    """
+    Get actual indicator value for single event
+    """
+    event  = await db.indicators.find_one({"code": code})
+    if event:
+        return [(d["actual"], d["date"].isoformat(),) for d in event.get("data", [])]
+
+
+@app.metric()
+async def forecast(db: AsyncIOMotorClient, code: str):
+    """
+    Get market forecast for single event
+    """
+    event  = await db.indicators.find_one({"code": code})
+    if event:
+        return [(d["forecast"], d["date"].isoformat(),) for d in event.get("data", [])]
+
+
+# @app.task
+# async def sync_events(app):
+#     indicator = Indicator(app['db'])
+#     while True:
+#         await indicator.fetch()
+#         await asyncio.sleep(3000)
+
+@app.task
+async def import_historical_data(app):
+    return False
+    indicator = Indicator(app['db'])
+    start = datetime.utcnow() - timedelta(days=365*5)
+    while start < datetime.utcnow():
+        end = start + timedelta(days=30)
+        print(f"Importing data for period {start} - {end}")
+        await indicator.fetch(start=start, end=end)
+        start = end
+        await asyncio.sleep(10)
 
 if __name__ == "__main__":
-    web.run_app(app)
+    app.run()
+
